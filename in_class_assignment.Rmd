@@ -1,0 +1,264 @@
+---
+title: "In Class Project"
+author: "Kobby Boateng"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+```{r, message=FALSE}
+#1. Import class one survey data from our Github site (https://github.com/kijohnson/Advanced-Data-Analysis) (The dataset is called ‘Class 1 Survey Fall 2025 2.csv’), calling the R dataframe that you create C1survey
+C1survey <- read_csv ("https://github.com/kijohnson/Advanced-Data-Analysis/raw/refs/heads/main/Class%201%20Survey%20Fall%202025%202.csv")
+```   
+
+```{r}
+#2Determine: a. the number of observations (i.e. the number of people who filled out the survey) and b. the number of variables in the dataframe
+dim(C1survey)
+```
+```{r}
+#3. a. Rename the column variables to something shorter and that is descriptive of what the variable is about (for example like_dogs for the ‘Do you like dogs?’ question variable) and b. Display that they are renamed. Hints: You can use either the rename_with function or the names function.
+colnames(C1survey)
+
+```
+```{r}
+#3. a. Rename the column variables to something shorter and that is descriptive of what the variable is about (for example like_dogs for the ‘Do you like dogs?’ question variable) and b. Display that they are renamed. Hints: You can use either the rename_with function or the names function.
+names(C1survey)[1:27] <- c("id", "like_cats", "like_dogs", "have_desert", "slogan", 
+               "fav_day", "larkORowl", "fav_food", "fav_drink", "fav_season", 
+               "fav_month", "hobby", "program", "specialization", "stat_software", 
+               "R_exp", "coding_comfort", "coding_length", "top_three", 
+               "public_health_interest", "fav_num", "bday", "bmonth", 
+               "country", "state", "city", "highest_educ_level")
+```
+
+```{r}
+#Write code to determine and display the number of factor, integer, numerical, and character variables there are in the C1survey dataset
+# Define the types to check
+types <- c("factor", "integer", "numeric", "character")
+
+# Count variables of each type
+type_counts <- sapply(types, function(t) sum(sapply(C1survey, class) == t))
+
+# Display the result
+type_counts
+```
+
+```{r}
+#5. a. Using code, check the bday and bmonth variables for any unusual or missing values (hint: use table function). If you find any, b. describe what you will do with the unusual values in a comment before or immediately following the code that does it, and c. after you have cleaned up any unusual values, find the median bday and month. *Note: please make sure that your bday and month variables are numeric before doing statistics
+
+#Show a list of all birthdays and birth months 
+list (bday_counts = table(C1survey$bday, useNA = "always"), 
+
+bmonth_counts = table(C1survey$bmonth, useNA = "always"))
+
+#Cleaning up the birthdays and changing them all to numeric
+birthdays <- c("10", "13", "18", "5", "13", "June 2nd", "1", "6", "17", "20", "30", 
+               "1", "28", "8", "15-Nov", "24-Jun", "August 2nd 1997", NA)
+birthdays_clean <- gsub(".*?(\\d+).*", "\\1", birthdays)
+
+birthdays_clean <- as.numeric(birthdays_clean)
+
+birthdays_clean
+
+show(birthdays_clean)
+
+C1survey$birthdays_clean <- birthdays_clean
+
+C1survey <- C1survey %>%
+  mutate(birthdays= gusb("[0-9]","",bday))
+
+#Cleaning the months and changing them to numeric
+month_lookup <- c(
+  "january" = 1, "february" = 2, "march" = 3, "april" = 4, "may" = 5,
+  "june" = 6, "july" = 7, "august" = 8, "september" = 9, "october" = 10,
+  "november" = 11, "december" = 12
+)
+
+
+library(dplyr)
+library(stringr)
+
+# 1. Standardize the original column
+C1survey <- C1survey %>%
+  mutate(
+    bmonth_clean = tolower(trimws(bmonth))
+  )
+
+# 2. Extract numeric values (for entries like "June 2nd", "August 2nd 1997")
+C1survey <- C1survey %>%
+  mutate(
+    bmonth_num = as.numeric(str_extract(bmonth_clean, "\\d+"))
+  )
+
+# 3. Create the new numeric month column
+C1survey <- C1survey %>%
+  mutate(
+    bmonth_2 = case_when(
+      bmonth_clean %in% c("january") ~ 1,
+      bmonth_clean %in% c("february") ~ 2,
+      bmonth_clean %in% c("march") ~ 3,
+      bmonth_clean %in% c("april") ~ 4,
+      bmonth_clean %in% c("may") ~ 5,
+      bmonth_clean %in% c("june") ~ 6,
+      bmonth_clean %in% c("july") ~ 7,
+      bmonth_clean %in% c("august") ~ 8,
+      bmonth_clean %in% c("september", "septemeber") ~ 9,  # typo fix
+      bmonth_clean %in% c("october") ~ 10,
+      bmonth_clean %in% c("november") ~ 11,
+      bmonth_clean %in% c("december") ~ 12,
+      bmonth_num %in% 1:12 ~ bmonth_num,   # numeric months 1–12
+      TRUE ~ NA_real_                       # everything else -> NA
+    )
+  )
+
+# 4. Check if column exists
+show(C1survey$bmonth_2)
+
+```
+
+```{r}
+#Changing the newly created birthdays_clean to just numeric
+library(dplyr)
+library(stringr)
+
+C1survey <- C1survey %>%
+  mutate(birthdays_clean = str_extract(bday, "\\d+"))
+
+C1survey <- C1survey %>%
+  mutate(birthdays_clean = as.numeric(str_extract(bday, "\\d+")))
+
+#showing if it exists
+table(C1survey$birthdays_clean, useNA = "always")
+
+
+```
+
+```{r}
+# 5b. Cleaning plan:
+# - For bday: keep only numeric day values (1–31), remove or recode any text entries (e.g., "15-Nov" → 15).
+# - For bmonth: convert month names to their numeric equivalents (e.g., "June"/"june" → 6, "August" → 8)
+class(C1survey$bday)
+class(C1survey$bmonth)
+str(C1survey$bday)
+```
+
+```{r}
+#Convert birthdays to numeric under a new column
+C1survey$bday_2 <- C1survey$bday %>% as.numeric(C1survey$bday, "%d")
+```
+```{r}
+table(C1survey$bday_2)
+```
+
+```{r}
+#Convert birth months to numeric under a new column 
+C1survey$bmonth_2 <- C1survey$bmonth %>% as.numeric(C1survey$bmonth, "%m")
+```
+```{r}
+#Show new variable with birth months
+table(C1survey$bmonth_2)
+```
+```{r}
+#Create vectors for birth months with frequencies where 1 = Jan, 2 = Feb, etc. 
+bmonth_2 <- c(`1`=3, `2`=5, `3`=2, `4`=5, `5`=8, 
+         `6`=5, `7`=4, `8`=4, `9`=3, `10`=5, `11`=4)
+```
+
+```{r}
+
+#removing objects no longer needed
+C1survey <- C1survey %>% 
+  select(-any_of(c("bday_new", "bday_2", "bday_vector", "bday_2freq", "median_bday")))
+
+```
+
+```{r}
+
+#Finding the median birthday 
+median_birthday <- median(C1survey$birthdays_clean, na.rm = TRUE)
+median_birthday
+
+#Creating an object called bmonth_2
+bmonth_2 <- C1survey$bmonth_2
+
+#Finding the median birth month
+median_bmonth <- median(bmonth_2, na.rm = TRUE)
+median_bmonth
+
+
+#Deleting objects not needed for the analysis. 
+#rm(list = c("bmonth_vector", "bmonth_2", "bmonth_3"))
+#rm("bmonth_vector")
+```
+
+```{r}
+#Create a new variable called bseason that gives the season according to Northern Meteorological season in which respondents were born (winter = 12/1 to 2/29, spring = 3/1 to 5/31, summer = 6/1 to 8/31, fall = 9/1 to 11/30). 
+C1survey$bseason <- with(C1survey, 
+  ifelse(bmonth_2 %in% c(12, 1, 2), "Winter",
+  ifelse(bmonth_2 %in% 3:5, "Spring",
+  ifelse(bmonth_2 %in% 6:8, "Summer",
+  ifelse(bmonth_2 %in% 9:11, "Fall", NA)))))
+
+```
+
+```{r}
+#b. Using the table function, print a table of Seasons in the columns and bmonths in the rows that allows you to check that the coding is correct
+#Create a cross-tab of Seasons (columns) vs. Birth months (rows)
+
+season_table <- table(
+  Month = C1survey$bmonth_2,
+  Season = C1survey$bseason,
+  useNA = "ifany"  # include any NAs if present
+)
+
+season_table
+
+season_table <- C1survey %>%
+  count(bmonth_2, bseason) %>%           # count occurrences of each month-season pair
+  pivot_wider(names_from = bseason,          # make seasons the columns
+              values_from = n,              # fill with counts
+              values_fill = 0)              # fill missing combinations with 0
+
+season_table
+
+#c. Sum the columns using the addmargins function to answer the question of how many classmates were born in each season? Include your answer in the code.
+season_totals <- addmargins(season_table, margin = 2)  # sum over columns
+
+season_totals
+
+``` 
+
+```{r}
+# Create a frequency table of the variable
+tab <- table(C1survey$`What is your level of R experience (1=None, 5=Advanced)?`)
+
+# Get the most frequent value (statistical mode)
+mode_value <- names(tab)[which.max(tab)]
+mode_value
+
+```
+
+
